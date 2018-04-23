@@ -26,7 +26,7 @@ import {
   ENTITY_METADATA_TOKEN
 } from '../entity-metadata/entity-metadata';
 
-import { EntitySelectors$Factory } from '../selectors/entity-selectors$';
+import { EntitySelectorsFactory } from '../selectors/entity-selectors';
 
 import { _NgrxDataModuleWithoutEffects } from '../ngrx-data.module';
 
@@ -42,13 +42,8 @@ const entityMetadataMap: EntityMetadataMap = {
 describe('Related-entity Selectors', () => {
   // #region setup
   let eaFactory: EntityActionFactory;
-  let entitySelectors$Factory: EntitySelectors$Factory;
+  let entitySelectorsFactory: EntitySelectorsFactory;
   let store: Store<EntityCache>;
-
-  let selectHeroCollection: Selector<Object, EntityCollection<Hero>>;
-  let selectHeroMap: Selector<Object, Dictionary<Hero>>;
-  let selectSidekickCollection: Selector<Object, EntityCollection<Sidekick>>;
-  let selectSidekickMap: Selector<Object, Dictionary<Hero>>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -66,47 +61,53 @@ describe('Related-entity Selectors', () => {
 
     store = TestBed.get(Store);
     eaFactory = TestBed.get(EntityActionFactory);
-    entitySelectors$Factory = TestBed.get(EntitySelectors$Factory);
+    entitySelectorsFactory = TestBed.get(EntitySelectorsFactory);
     initializeCache(eaFactory, store);
-    setCollectionSelectors();
   });
 
   /** Collection selectors. Used within related-entity selectors */
   function setCollectionSelectors() {
-    selectHeroCollection = entitySelectors$Factory.createCollectionSelector<
-      Hero
-    >('Hero');
+    const heroSelectors = entitySelectorsFactory.create<Hero>({
+      entityName: 'Hero'
+    });
+    const selectHeroCollection = heroSelectors.selectCollection;
+    const selectHeroMap = heroSelectors.selectEntityMap;
 
-    selectHeroMap = createSelector(
+    const sidekickSelectors = entitySelectorsFactory.create<Sidekick>({
+      entityName: 'Sidekick'
+    });
+    const selectSidekickCollection = sidekickSelectors.selectCollection;
+    const selectSidekickMap = sidekickSelectors.selectEntityMap;
+
+    return {
       selectHeroCollection,
-      collection => collection.entities
-    );
-
-    selectSidekickCollection = entitySelectors$Factory.createCollectionSelector<
-      Sidekick
-    >('Sidekick');
-
-    selectSidekickMap = createSelector(
+      selectHeroMap,
       selectSidekickCollection,
-      collection => collection.entities
-    );
+      selectSidekickMap
+    };
   }
 
   // #endregion setup
 
   describe('hero sidekick', () => {
     function createHeroSidekickSelector$(heroId: number): Observable<Sidekick> {
-      const selectSideKick = createSelector(
+      const { selectHeroMap, selectSidekickMap } = setCollectionSelectors();
+      const selectHero = createSelector(
         selectHeroMap,
+        heroes => heroes[heroId]
+      );
+      const selectSideKick = createSelector(
+        selectHero,
         selectSidekickMap,
-        (heroes, sidekicks) => {
-          const hero = heroes[heroId];
+        (hero, sidekicks) => {
           const sidekickId = hero && hero.sidekickFk;
           return sidekicks[sidekickId];
         }
       );
       return store.select(selectSideKick);
     }
+
+    // Note: async done() callback ensures test passes only if subscribe(successCallback()) called.
 
     it('can get Alpha Hero sidekick', (done: DoneFn) => {
       createHeroSidekickSelector$(1).subscribe(sk => {
@@ -149,6 +150,15 @@ describe('Related-entity Selectors', () => {
         { id: 1, changes: { id: 1, sidekickFk: 2 } } // Sally
       );
       store.dispatch(action);
+    });
+
+    it('changing a different hero should not trigger selector (TODO)');
+
+    it('should get undefined sidekick if hero not found', (done: DoneFn) => {
+      createHeroSidekickSelector$(1234).subscribe(sk => {
+        expect(sk).toBeUndefined();
+        done();
+      });
     });
 
     it('should get undefined sidekick from Gamma because it has no sidekickFk', (done: DoneFn) => {

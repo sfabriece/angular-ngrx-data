@@ -26,7 +26,7 @@ import {
 } from './entity-metadata/entity-metadata';
 
 import { EntityEffects } from './effects/entity-effects';
-import { EntityServiceFactory } from './entity-service/entity.service';
+import { EntityServiceFactory } from './entity-service/entity-service-factory';
 
 import { EntityCache } from './reducers/entity-cache';
 import { EntityCollection } from './reducers/entity-collection';
@@ -48,6 +48,7 @@ import {
 } from './reducers/constants';
 
 import { EntitySelectors } from './selectors/entity-selectors';
+import { EntitySelectorsFactory } from './selectors/entity-selectors';
 import { EntitySelectors$Factory } from './selectors/entity-selectors$';
 import {
   Pluralizer,
@@ -76,6 +77,7 @@ export interface NgrxDataModuleConfig {
     EntityDefinitionService,
     EntityDispatcherFactory,
     EntityReducerFactory,
+    EntitySelectorsFactory,
     EntitySelectors$Factory,
     EntityServiceFactory,
     {
